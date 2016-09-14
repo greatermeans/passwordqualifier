@@ -4,7 +4,6 @@ logs
 npm-debug.log*
 
 keys.js
-keys
 
 # Runtime data
 pids
