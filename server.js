@@ -18,9 +18,12 @@ app.get('/*', function(req, res){
   res.send('Up & Running');
 });
 
+var originalPassword;
+
 var server = app.listen(port, function(){
   console.log('Listening on port ' + port);
 });
+
 
 var getMentions = function(){
   var stream = twit.stream('user');
@@ -30,27 +33,29 @@ var getMentions = function(){
     let textItems = tweet.text.split(' ');
     let sender = tweet.user.screen_name;
 
-    let password = RemoveUserName(textItems)
-    let response = qualifyPassword(password)
+    originalPassword = RemoveUserName(textItems)
+    let response = qualifyPassword(originalPassword)
     respondToSender(response)
   });
 };
-
-
 
 var RemoveUserName = function (textItems) {
   textItems.shift()
   return textItems.join(' ')
 }
 
+var reducedPassword;
+
 var qualifyPassword = function (password) {
   //check for words
-  var reducedPassword = checkForWords(password.split(' '))
+  reducedPassword = checkForWords(password.split(' '))
+  console.log(reducedPassword.length)
   //check for quantity of character types
   var characterTypes = characterTypesCount(reducedPassword)
   //get strength value
   var passwordStrength = reducedPassword.length * characterTypes
   //responses through tweets
+  return evaluateStrength(passwordStrength)
 }
 
 // iterates through password to see if any valid words exist and returns a reduced password
@@ -107,17 +112,67 @@ var expressions = {
 }
 
 var characterTypesCount = function (password) {
-
   var count = 0
-
   for (var key in expressions) {
     if (expressions[key].test(password))
       ++count
   }
-
   return count
-
 }
+
+var missingCharTypes = function (password) {
+  let missingTypes = []
+  for (var key in expressions) {
+    if (!expressions[key].test(password))
+      missingTypes.push(key)
+  }
+  return missingTypes
+}
+
+var evaluateStrength = function (strength) {
+  if (strength >= 50) {
+    return "Your password is through the roof! You probably shouldn't use it since its on Twitter"
+  } else if (strength > 10 || strength < 50) {
+    originalPassword.length > reducedPassword.length ? makePasswordBetter() : addCharacter()
+   } else {
+    return "That was terrible. Try again!"
+  }
+}
+
+var makePasswordBetter = function () {
+  while (reducedPassword.length < originalPassword.length ) {
+    let missingTypes = missingCharTypes(reducedPassword)
+    reducedPassword = addToPassword(missingTypes)
+  } 
+
+  qualifyPassword(reducedPassword)
+}
+
+var addToPassword = function (missingTypes) {
+  switch (missingTypes[0]) {
+    case 'space':
+      return (reducedPassword + ' ')
+      break;
+    case 'other':
+      return (reducedPassword + '_')
+      break;
+    case 'digit':
+      return (reducedPassword + '2')
+      break;
+    case 'alpha':
+      return (reducedPassword + 'a')
+      break;
+    default:
+      return (reducedPassword + '!')
+      break;
+  }
+}
+
+var addCharacter = function () {
+  reducedPassword += '!'
+  qualifyPassword(reducedPassword)
+}
+
 
 getMentions()
 setInterval(function(){
