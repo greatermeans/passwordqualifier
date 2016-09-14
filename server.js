@@ -20,44 +20,72 @@ app.get('/*', function(req, res){
 
 var server = app.listen(port, function(){
   console.log('Listening on port ' + port);
-  qualifyPassword('tomatoze')
+  qualifyPassword('123hello123 rob123 123apple')
 });
 
 var getMentions = function(){
   var stream = twit.stream('user');
 
   stream.on('tweet', function (tweet) {
-    console.log(tweet)
-    var text = tweet.text.split(' ');
+
+    var textItems = tweet.text.split(' ');
     var screenName = tweet.user.screen_name;
 
-    console.log('I just received a message from ' + screenName);
-    console.log('msg: ' + text);
-    qualifyPassword(text)
+    var password = RemoveUserName(textItems)
+    console.log(password)
+    qualifyPassword(password)
 
   });
 };
 
+var RemoveUserName = function (textItems) {
+  textItems.shift()
+  return textItems.join(' ')
+}
+
+var qualifyPassword = function (password) {
+  //check for words
+  var reducedPassword = checkForWords(password.split(' '))
+  //check for quantity of character types
+  //get strength value
+  //responses through tweets
+}
+
+
+var wordReg = new RegExp(/\D\w+\D/)
+
+var checkForWords = function (words) {
+  var passwordItems = []
+  for (var i = words.length - 1; i >= 0; i--) {
+    let word = words[i].match(wordReg)[0]
+    let index = words[i].match(wordReg).index
+
+    if (word && IsWord(word)){
+      console.log(words[i])
+      passwordItems.unshift(words[i].replace(wordReg,words[i][index]))
+    }
+  }
+  return passwordItems.join(' ')
+}
+
 var request = require('request');
 var parser = require('xml2json');
 
-var qualifyPassword = function (password) {
-  console.log(password)
-  request(`http://www.dictionaryapi.com/api/v1/references/collegiate/xml/${password}?key=${dictionaryKey}`, 
+var IsWord = function (word) {
+  return request(`http://www.dictionaryapi.com/api/v1/references/collegiate/xml/${word}?key=${dictionaryKey}`, 
     function (error, response, body) {
       if (!error && response.statusCode == 200) {
         var json = parser.toJson(body)
         var parsed = JSON.parse(json)
-        console.log(parsed.entry_list)
-        console.log(parsed.entry_list.entry[0].id)
-        console.log(parsed.entry_list.entry[0].id === password)
+        if (parsed.entry_list.entry) {
+          return true
+        } else {
+          return false
+        }
       }
     }
   )
 }
-
-
-
 
 getMentions()
 setInterval(function(){
