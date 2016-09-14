@@ -20,7 +20,6 @@ app.get('/*', function(req, res){
 
 var server = app.listen(port, function(){
   console.log('Listening on port ' + port);
-  qualifyPassword('123hello123 /) ')
 });
 
 var getMentions = function(){
@@ -28,15 +27,16 @@ var getMentions = function(){
 
   stream.on('tweet', function (tweet) {
 
-    var textItems = tweet.text.split(' ');
-    var screenName = tweet.user.screen_name;
+    let textItems = tweet.text.split(' ');
+    let sender = tweet.user.screen_name;
 
-    var password = RemoveUserName(textItems)
-    console.log(password)
-    qualifyPassword(password)
-
+    let password = RemoveUserName(textItems)
+    let response = qualifyPassword(password)
+    respondToSender(response)
   });
 };
+
+
 
 var RemoveUserName = function (textItems) {
   textItems.shift()
@@ -53,35 +53,29 @@ var qualifyPassword = function (password) {
   //responses through tweets
 }
 
-
 // iterates through password to see if any valid words exist and returns a reduced password
-var expressions = { 
-  alpha: new RegExp(/[a-zA-Z]+/),
-  digit: new RegExp(/\d/),
-  space: new RegExp(/\s/),
-  other: new RegExp(/\S\W/)
-}
+var alphaWord = new RegExp(/[a-zA-Z]{2,50}/)
 
 var checkForWords = function (words) {
   var passwordItems = []
 
   for (var i = words.length - 1; i >= 0; i--) {
-    if (words[i].match(expressions.alpha)) {
-      var word = words[i].match(expressions.alpha)[0]
-      var index = words[i].match(expressions.alpha).index
+    let matched = words[i].match(alphaWord)
+    if (matched) {
+      var word = matched[0]
+      var index = matched.index
     } else {
       var word = false
     }
 
     if (word && IsWord(word)){
-      passwordItems.unshift(words[i].replace(expressions.alpha,words[i][index]))
+      passwordItems.unshift(words[i].replace(alphaWord,words[i][index]))
     } else {
       passwordItems.unshift(words[i])
     }
   }
   return passwordItems.join(' ')
 }
-
 
 // hits dictionary api to return true/false if word exists
 var request = require('request');
@@ -92,7 +86,6 @@ var IsWord = function (word) {
   return request(`http://www.dictionaryapi.com/api/v1/references/collegiate/xml/${word}?key=${dictionaryKey}`, 
     function (error, response, body) {
       if (!error && response.statusCode == 200) {
-        
         var json = parser.toJson(body)
         var parsed = JSON.parse(json)
         
@@ -106,12 +99,19 @@ var IsWord = function (word) {
   )
 }
 
+var expressions = { 
+  alpha: new RegExp(/[a-zA-Z]/),
+  digit: new RegExp(/\d/),
+  space: new RegExp(/\s/),
+  other: new RegExp(/[_]|[^\w\s]/)
+}
+
 var characterTypesCount = function (password) {
 
   var count = 0
-  console.log(password)
+
   for (var key in expressions) {
-    if (password.match(expressions[key]))
+    if (expressions[key].test(password))
       ++count
   }
 
