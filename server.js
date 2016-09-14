@@ -20,7 +20,7 @@ app.get('/*', function(req, res){
 
 var server = app.listen(port, function(){
   console.log('Listening on port ' + port);
-  qualifyPassword('123hello123 rob123 123apple')
+  qualifyPassword('123hello123 /) ')
 });
 
 var getMentions = function(){
@@ -47,36 +47,55 @@ var qualifyPassword = function (password) {
   //check for words
   var reducedPassword = checkForWords(password.split(' '))
   //check for quantity of character types
+  var characterTypes = characterTypesCount(reducedPassword)
   //get strength value
+  var passwordStrength = reducedPassword.length * characterTypes
   //responses through tweets
 }
 
 
-var wordReg = new RegExp(/\D\w+\D/)
+// iterates through password to see if any valid words exist and returns a reduced password
+var expressions = { 
+  alpha: new RegExp(/[a-zA-Z]+/),
+  digit: new RegExp(/\d/),
+  space: new RegExp(/\s/),
+  other: new RegExp(/\S\W/)
+}
 
 var checkForWords = function (words) {
   var passwordItems = []
+
   for (var i = words.length - 1; i >= 0; i--) {
-    let word = words[i].match(wordReg)[0]
-    let index = words[i].match(wordReg).index
+    if (words[i].match(expressions.alpha)) {
+      var word = words[i].match(expressions.alpha)[0]
+      var index = words[i].match(expressions.alpha).index
+    } else {
+      var word = false
+    }
 
     if (word && IsWord(word)){
-      console.log(words[i])
-      passwordItems.unshift(words[i].replace(wordReg,words[i][index]))
+      passwordItems.unshift(words[i].replace(expressions.alpha,words[i][index]))
+    } else {
+      passwordItems.unshift(words[i])
     }
   }
   return passwordItems.join(' ')
 }
 
+
+// hits dictionary api to return true/false if word exists
 var request = require('request');
 var parser = require('xml2json');
 
 var IsWord = function (word) {
+
   return request(`http://www.dictionaryapi.com/api/v1/references/collegiate/xml/${word}?key=${dictionaryKey}`, 
     function (error, response, body) {
       if (!error && response.statusCode == 200) {
+        
         var json = parser.toJson(body)
         var parsed = JSON.parse(json)
+        
         if (parsed.entry_list.entry) {
           return true
         } else {
@@ -85,6 +104,19 @@ var IsWord = function (word) {
       }
     }
   )
+}
+
+var characterTypesCount = function (password) {
+
+  var count = 0
+  console.log(password)
+  for (var key in expressions) {
+    if (password.match(expressions[key]))
+      ++count
+  }
+
+  return count
+
 }
 
 getMentions()
