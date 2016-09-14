@@ -18,26 +18,48 @@ app.get('/*', function(req, res){
   res.send('Up & Running');
 });
 
-var originalPassword;
+
 
 var server = app.listen(port, function(){
   console.log('Listening on port ' + port);
 });
 
+var originalPassword;
+var message;
+var passwordHasBeenChanged;
+var storedTweets = {}
 
 var getMentions = function(){
-  var stream = twit.stream('user');
-
-  stream.on('tweet', function (tweet) {
-
+  var stream = twit.stream('statuses/filter', { track: ['@EnhancingPass'] })
+    
+  stream.on('tweet', function (tweet) {    
     let textItems = tweet.text.split(' ');
     let sender = tweet.user.screen_name;
 
     originalPassword = RemoveUserName(textItems)
-    let response = qualifyPassword(originalPassword)
-    respondToSender(response)
-  });
-};
+    passwordHasBeenChanged = false
+    storedTweets.sender = originalPassword
+
+    qualifyPassword(originalPassword)
+    respondToSender(sender)
+    console.log(storedTweets)
+  })
+}
+
+var respondToSender = function (sender) {
+  if (passwordHasBeenChanged) {
+    message = `Your password is stronger as [${reducedPassword}]`
+  }
+
+  twit.post('statuses/update', {status: `@${sender} ${message}`},  
+    function(error, tweet, response){
+      if(error){
+        console.log(error);
+      } else {
+        console.log(tweet)
+      }
+    });
+}
 
 var RemoveUserName = function (textItems) {
   textItems.shift()
@@ -49,12 +71,11 @@ var reducedPassword;
 var qualifyPassword = function (password) {
   //check for words
   reducedPassword = checkForWords(password.split(' '))
-  console.log(reducedPassword.length)
   //check for quantity of character types
   var characterTypes = characterTypesCount(reducedPassword)
   //get strength value
   var passwordStrength = reducedPassword.length * characterTypes
-  //responses through tweets
+  //evaluate strength
   return evaluateStrength(passwordStrength)
 }
 
@@ -131,11 +152,12 @@ var missingCharTypes = function (password) {
 
 var evaluateStrength = function (strength) {
   if (strength >= 50) {
-    return "Your password is through the roof! You probably shouldn't use it since its on Twitter"
-  } else if (strength > 10 || strength < 50) {
+    return message = "Your password is through the roof! You probably shouldn't use it since its on Twitter"
+  } else if (strength > 10 && strength < 50) {
+    passwordHasBeenChanged = true
     originalPassword.length > reducedPassword.length ? makePasswordBetter() : addCharacter()
-   } else {
-    return "That was terrible. Try again!"
+   } else if (strength <= 10) {
+    return message = "That was terrible. Try again!"
   }
 }
 
@@ -152,25 +174,19 @@ var addToPassword = function (missingTypes) {
   switch (missingTypes[0]) {
     case 'space':
       return (reducedPassword + ' ')
-      break;
     case 'other':
       return (reducedPassword + '_')
-      break;
     case 'digit':
       return (reducedPassword + '2')
-      break;
     case 'alpha':
       return (reducedPassword + 'a')
-      break;
     default:
       return (reducedPassword + '!')
-      break;
   }
 }
 
 var addCharacter = function () {
-  reducedPassword += '!'
-  qualifyPassword(reducedPassword)
+  qualifyPassword(reducedPassword + '!')
 }
 
 
