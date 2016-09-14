@@ -1,0 +1,20 @@
+{
+  "name": "passwordqualifier",
+  "version": "1.0.0",
+  "description": "Qualifies your password",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "test": "node bot.js"
+  },
+  "repository": {
+    "type": "",
+    "url": ""
+  },
+  "author": "Me",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.14.0",
+    "twit": "^2.2.4"
+  }
+}
