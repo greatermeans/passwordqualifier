@@ -4,6 +4,7 @@ logs
 npm-debug.log*
 
 keys.js
+dictionary_apikey.js
 
 # Runtime data
 pids
