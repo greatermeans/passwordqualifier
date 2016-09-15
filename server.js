@@ -5,7 +5,6 @@ var port = 3000;
 var twitterKeys = require('./keys.js');
 var dictionaryKey = require('./dictionary_apikey.js')
 
-
 var twitter = require('twit');
 var twit = new twitter({
   consumer_key: twitterKeys.TWITTER_CONSUMER_KEY,
@@ -17,8 +16,6 @@ var twit = new twitter({
 app.get('/*', function(req, res){
   res.send('Up & Running');
 });
-
-
 
 var server = app.listen(port, function(){
   console.log('Listening on port ' + port);
@@ -38,8 +35,13 @@ var getMentions = function(){
 
     originalPassword = RemoveUserName(textItems)
     passwordHasBeenChanged = false
-    storedTweets.sender = originalPassword
 
+    if (storedTweets[sender] === originalPassword) {
+      // to avoid spam
+      return 
+    }
+
+    storedTweets[sender] = originalPassword
     qualifyPassword(originalPassword)
     respondToSender(sender)
     console.log(storedTweets)
@@ -48,7 +50,7 @@ var getMentions = function(){
 
 var respondToSender = function (sender) {
   if (passwordHasBeenChanged) {
-    message = `Your password is stronger as [${reducedPassword}]`
+    message = `Your password is stronger as "${reducedPassword}"`
   }
 
   twit.post('statuses/update', {status: `@${sender} ${message}`},  
@@ -56,9 +58,10 @@ var respondToSender = function (sender) {
       if(error){
         console.log(error);
       } else {
-        console.log(tweet)
+        console.log('Successfully responded')
       }
-    });
+    }
+  )
 }
 
 var RemoveUserName = function (textItems) {
@@ -152,12 +155,12 @@ var missingCharTypes = function (password) {
 
 var evaluateStrength = function (strength) {
   if (strength >= 50) {
-    return message = "Your password is through the roof! You probably shouldn't use it since its on Twitter"
+    return message = "Your password is through the roof!"
   } else if (strength > 10 && strength < 50) {
     passwordHasBeenChanged = true
     originalPassword.length > reducedPassword.length ? makePasswordBetter() : addCharacter()
    } else if (strength <= 10) {
-    return message = "That was terrible. Try again!"
+    return message = "That was no good. Try a different password!"
   }
 }
 
@@ -166,10 +169,16 @@ var makePasswordBetter = function () {
     let missingTypes = missingCharTypes(reducedPassword)
     reducedPassword = addToPassword(missingTypes)
   } 
-
   qualifyPassword(reducedPassword)
 }
 
+
+var randomChar = function () {
+  var charArray = ['1','!','z','[','(']
+  return charArray[Math.floor(Math.random() * charArray.length)]
+}
+
+// adds to password based on missing char types
 var addToPassword = function (missingTypes) {
   switch (missingTypes[0]) {
     case 'space':
@@ -181,16 +190,16 @@ var addToPassword = function (missingTypes) {
     case 'alpha':
       return (reducedPassword + 'a')
     default:
-      return (reducedPassword + '!')
+      return (reducedPassword + randomChar())
   }
 }
 
+// adds to password if word doesn't meet strength reqts and is equal to original tweet
 var addCharacter = function () {
-  qualifyPassword(reducedPassword + '!')
+  qualifyPassword(reducedPassword + randomChar())
 }
 
 
-getMentions()
 setInterval(function(){
   getMentions();
 }, 85000);
