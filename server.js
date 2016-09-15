@@ -27,7 +27,7 @@ var passwordHasBeenChanged;
 var storedTweets = {}
 
 var getMentions = function(){
-  var stream = twit.stream('statuses/filter', { track: ['@EnhancingPass'] })
+  var stream = twit.stream('statuses/filter', { track: ['@ShallNotPasswar'] })
     
   stream.on('tweet', function (tweet) {    
     let textItems = tweet.text.split(' ');
@@ -186,7 +186,7 @@ var addToPassword = function (missingTypes) {
     case 'other':
       return (reducedPassword + '_')
     case 'digit':
-      return (reducedPassword + '2')
+      return replaceAlphaWithDigit()
     case 'alpha':
       return (reducedPassword + 'a')
     default:
@@ -197,6 +197,24 @@ var addToPassword = function (missingTypes) {
 // adds to password if word doesn't meet strength reqts and is equal to original tweet
 var addCharacter = function () {
   qualifyPassword(reducedPassword + randomChar())
+}
+
+var replaceAlphaWithDigit = function () {
+  console.log('here')
+  alphaToDigit = {"a": '4', "o": '0',"i": '1',"e": '3'}
+  reducedArray = reducedPassword.split('')
+  reducedArray = reducedArray.map((char)=>{
+    for (var key in alphaToDigit) {
+      if (key === char) {
+        return alphaToDigit[key]
+      } else {
+        return char
+      }
+    }
+  })
+
+  return reducedArray.join('')
+
 }
 
 
